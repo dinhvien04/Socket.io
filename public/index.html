@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chuyện Trực Tuyến</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Login Form -->
+        <div id="loginForm" class="login-form">
+            <div class="login-card">
+                <h2><i class="fas fa-sign-in-alt"></i> Đăng Nhập</h2>
+                <div class="form-group">
+                    <input type="email" id="email" placeholder="Email">
+                    <input type="password" id="password" placeholder="Mật khẩu">
+                </div>
+                <button onclick="handleLogin()" class="btn-login">Đăng Nhập</button>
+                <p class="switch-form">Chưa có tài khoản? <a href="#" onclick="showRegisterForm()">Đăng ký ngay</a></p>
+            </div>
+        </div>
+
+        <!-- Register Form -->
+        <div id="registerForm" class="login-form" style="display: none;">
+            <div class="login-card">
+                <h2><i class="fas fa-user-plus"></i> Đăng Ký</h2>
+                <div class="form-group">
+                    <input type="text" id="username" placeholder="Tên người dùng">
+                    <input type="email" id="regEmail" placeholder="Email">
+                    <input type="password" id="regPassword" placeholder="Mật khẩu">
+                    <input type="password" id="confirmPassword" placeholder="Xác nhận mật khẩu">
+                </div>
+                <button onclick="handleRegister()" class="btn-register">Đăng Ký</button>
+                <p class="switch-form">Đã có tài khoản? <a href="#" onclick="showLoginForm()">Đăng nhập</a></p>
+            </div>
+        </div>
+
+        <!-- Chat Container -->
+        <div id="chatContainer" class="chat-container" style="display: none;">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="user-profile" onclick="toggleProfilePopup()">
+                    <div class="avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <span id="currentUser"></span>
+                </div>
+                <!-- Profile Popup -->
+                <div id="profilePopup" class="profile-popup" style="display: none;">
+                    <div class="profile-info">
+                        <div class="profile-avatar"><i class="fas fa-user"></i></div>
+                        <div class="profile-details">
+                            <div><strong id="profileUsername"></strong></div>
+                            <div id="profileEmail" style="font-size: 0.95em; color: #bdbdbd;"></div>
+                        </div>
+                    </div>
+                    <button class="btn-logout" onclick="handleLogout()">Đăng xuất</button>
+                </div>
+                <div class="online-users">
+                    <h3><i class="fas fa-circle online-icon"></i> Người Dùng Trực Tuyến</h3>
+                    <div id="onlineUsers" class="users-list"></div>
+                </div>
+            </div>
+
+            <!-- Main Chat Area -->
+            <div class="main-chat">
+                <div class="chat-header">
+                    <h2>Phòng Trò Chuyện</h2>
+                    <div class="theme-toggle">
+                        <i class="fas fa-moon" onclick="toggleTheme()"></i>
+                    </div>
+                </div>
+
+                <div id="messages" class="messages"></div>
+
+                <div id="typingIndicator" class="typing-indicator"></div>
+
+                <div class="input-container">
+                    <div class="emoji-picker" onclick="toggleEmojiPicker()">
+                        <i class="far fa-smile"></i>
+                    </div>
+                    <label class="file-attach">
+                        <input type="file" id="fileInput" style="display:none"
+                            accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/zip,application/x-rar-compressed,application/octet-stream" />
+                        <i class="fas fa-paperclip"></i>
+                    </label>
+                    <input type="text" id="messageInput" placeholder="Nhập tin nhắn...">
+                    <button onclick="sendMessage()" class="send-button">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Sound -->
+    <audio id="notificationSound" src="sounds/notification.mp3"></audio>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@emoji-mart/data"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/chat.js"></script>
+    <script src="js/ui.js"></script>
+</body>
+
+</html>
