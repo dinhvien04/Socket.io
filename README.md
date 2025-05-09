@@ -1,16 +1,24 @@
 # Real-time Chat Application
 
-A real-time chat application built with Node.js, Express, Socket.IO, and MongoDB.
+A modern real-time chat application built with Node.js, Express, Socket.IO, and MongoDB.
 
 ## Features
 
-- Real-time messaging using Socket.IO
-- User authentication
-- Message history storage
-- Online user tracking
-- Typing indicators
-- Support for text, emoji, and images
-- Dark mode support
+- **Real-time messaging** using Socket.IO
+- **User authentication** (register, login, JWT-based)
+- **Message history** (stored in MongoDB)
+- **Online user tracking**
+- **Typing indicators**
+- **Support for text, emoji, images, and file attachments**
+- **Send and preview images/files** in chat
+- **Dark mode** (toggle theme)
+- **Emoji picker**
+- **Notification sounds** for new messages
+- **Toast notifications** for system events
+- **Responsive design** (mobile & desktop)
+- **View account info** (click avatar to see username/email)
+- **Logout** from account
+- **.gitignore** to keep uploads, node_modules, .env out of git
 
 ## Prerequisites
 
@@ -43,9 +51,13 @@ A real-time chat application built with Node.js, Express, Socket.IO, and MongoDB
 ├── models/           # MongoDB models
 │   ├── User.js      # User model
 │   └── Message.js   # Message model
-├── routes/          # API routes
+├── routes/          # API routes (auth, messages, upload)
 ├── middleware/      # Custom middleware
-└── public/         # Static files
+├── public/          # Static files (frontend, uploads)
+│   ├── css/
+│   ├── js/
+│   └── uploads/     # Uploaded files/images (gitignored)
+└── .gitignore       # Ignore uploads, node_modules, .env
 ```
 
 ## API Endpoints
@@ -54,11 +66,13 @@ A real-time chat application built with Node.js, Express, Socket.IO, and MongoDB
 - `POST /api/auth/login` - Login user
 - `GET /api/messages` - Get message history
 - `POST /api/messages` - Send a new message
+- `POST /api/upload` - Upload image/file (authenticated)
 
 ## Socket.IO Events
 
 - `user:join` - User joins the chat
-- `message:send` - Send a new message
+- `message:send` - Send a new message (text, emoji, image, file)
+- `message:new` - Receive a new message
 - `user:typing` - User typing status
 - `user:left` - User leaves the chat
 
