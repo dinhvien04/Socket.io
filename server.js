@@ -7,6 +7,8 @@ const dotenv = require('dotenv');
 const path = require('path');
 const authRoutes = require('./routes/auth');
 const messageRoutes = require('./routes/messages');
+const uploadRoutes = require('./routes/upload');
+const User = require('./models/User');
 
 // Load environment variables
 dotenv.config();
@@ -29,6 +31,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/chat-app', {
@@ -38,6 +41,10 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/chat-app'
     .then(() => console.log('Connected to MongoDB'))
     .catch(err => console.error('MongoDB connection error:', err));
 
+// Quản lý user online duy nhất
+const onlineUsers = new Set();
+const userSockets = {};
+
 // Socket.IO Connection
 io.on('connection', (socket) => {
     console.log('New client connected');
@@ -45,6 +52,12 @@ io.on('connection', (socket) => {
     // Handle user joining
     socket.on('user:join', (username) => {
         socket.username = username;
+        // Quản lý socket theo user
+        if (!userSockets[username]) userSockets[username] = new Set();
+        userSockets[username].add(socket.id);
+        onlineUsers.add(username);
+        // Emit danh sách user online duy nhất
+        io.emit('user:online-list', Array.from(onlineUsers));
         io.emit('user:joined', {
             username: username,
             id: socket.id,
@@ -54,12 +67,18 @@ io.on('connection', (socket) => {
 
     // Handle new messages
     socket.on('message:send', (message) => {
-        io.emit('message:new', {
+        const msgData = {
             username: socket.username,
             content: message.content || message,
             type: message.type || 'text',
             timestamp: new Date()
-        });
+        };
+        if (message.type === 'file' && message.fileName) {
+            msgData.fileName = message.fileName;
+        }
+        // Gửi về cho chính socket gửi và các socket khác
+        socket.emit('message:new', msgData);
+        socket.broadcast.emit('message:new', msgData);
     });
 
     // Handle typing status
@@ -71,8 +90,22 @@ io.on('connection', (socket) => {
     });
 
     // Handle disconnection
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
         if (socket.username) {
+            // Xóa socket khỏi userSockets
+            if (userSockets[socket.username]) {
+                userSockets[socket.username].delete(socket.id);
+                if (userSockets[socket.username].size === 0) {
+                    // Không còn socket nào của user này, xóa khỏi online
+                    onlineUsers.delete(socket.username);
+                    delete userSockets[socket.username];
+                    // Set isOnline=false trong DB
+                    try {
+                        await User.findOneAndUpdate({ username: socket.username }, { isOnline: false });
+                    } catch (e) { }
+                }
+            }
+            io.emit('user:online-list', Array.from(onlineUsers));
             io.emit('user:left', {
                 username: socket.username,
                 timestamp: new Date()

@@ -145,6 +145,14 @@ function handleLogout() {
     authToken = null;
     localStorage.removeItem('authToken');
 
+    // Gọi API logout để set isOnline=false
+    fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+    }).catch(() => { });
+
     // Disconnect socket
     if (typeof socket !== 'undefined' && socket) {
         socket.disconnect();

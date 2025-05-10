@@ -22,6 +22,7 @@ function initializeChat() {
 
     // Message events
     socket.on('message:new', (data) => {
+        console.log('Nhận message mới:', data);
         appendMessage(data);
         if (data.username !== currentUser.username) {
             playNotificationSound();
@@ -30,17 +31,19 @@ function initializeChat() {
 
     // User events
     socket.on('user:joined', (data) => {
-        updateOnlineUsers(data);
-        showNotification(`${data.username} đã tham gia trò chuyện`, 'info');
+        // showNotification(`${data.username} đã tham gia trò chuyện`, 'info');
     });
 
     socket.on('user:left', (data) => {
-        updateOnlineUsers(data);
-        showNotification(`${data.username} đã rời khỏi trò chuyện`, 'info');
+        // showNotification(`${data.username} đã rời khỏi trò chuyện`, 'info');
     });
 
     socket.on('user:typing', (data) => {
         updateTypingStatus(data);
+    });
+
+    socket.on('user:online-list', (userList) => {
+        renderOnlineUsers(userList);
     });
 
     // Load message history
@@ -65,6 +68,7 @@ function sendMessage() {
 
 // Append message to chat
 function appendMessage(data) {
+    console.log('Render appendMessage:', data);
     const messagesDiv = document.getElementById('messages');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${data.username === currentUser.username ? 'sent' : 'received'}`;
@@ -75,8 +79,17 @@ function appendMessage(data) {
     } else if (data.type === 'image') {
         content = `<img src="${data.content}" alt="image" style="max-width:180px;max-height:180px;border-radius:8px;box-shadow:0 2px 8px #0002;" />`;
     } else if (data.type === 'file') {
-        const fileName = data.content.split('/').pop();
-        content = `<a href="${data.content}" target="_blank" download style="color:#2196f3;"><i class="fas fa-file-alt"></i> ${fileName}</a>`;
+        const fileName = data.fileName || data.content.split('/').pop();
+        content = `
+            <div class="file-message" style="background:#f5f5f5;padding:10px;border-radius:8px;display:flex;align-items:center;gap:10px;">
+                <i class="fas fa-file" style="font-size:24px;color:#2196f3;"></i>
+                <div style="flex:1;">
+                    <div style="font-weight:500;color:#333;">${fileName}</div>
+                    <a href="${data.content}" target="_blank" download="${fileName}" style="color:#2196f3;text-decoration:none;font-size:0.9em;">
+                        <i class="fas fa-download"></i> Tải xuống
+                    </a>
+                </div>
+            </div>`;
     } else {
         content = data.content || data.message;
     }
@@ -167,14 +180,102 @@ document.getElementById('messageInput').addEventListener('keypress', (e) => {
     }
 });
 
-// Xử lý gửi file/ảnh
-const fileInput = document.getElementById('fileInput');
-fileInput.addEventListener('change', async function () {
-    if (!fileInput.files || fileInput.files.length === 0) return;
-    const file = fileInput.files[0];
-    const formData = new FormData();
-    formData.append('file', file);
+// Hiện/ẩn menu chọn loại file
+function toggleFileMenu(e) {
+    e.stopPropagation();
+    const menu = document.getElementById('fileMenu');
+    menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+    if (menu.style.display === 'block') {
+        setTimeout(() => {
+            document.addEventListener('mousedown', closeFileMenuOnClickOutside);
+        }, 0);
+    } else {
+        document.removeEventListener('mousedown', closeFileMenuOnClickOutside);
+    }
+}
+function closeFileMenuOnClickOutside(e) {
+    const menu = document.getElementById('fileMenu');
+    const icon = document.querySelector('.file-attach i');
+    if (!menu.contains(e.target) && !icon.contains(e.target)) {
+        menu.style.display = 'none';
+        document.removeEventListener('mousedown', closeFileMenuOnClickOutside);
+    }
+}
+function triggerImageInput() {
+    document.getElementById('fileMenu').style.display = 'none';
+    document.getElementById('imageInput').click();
+}
+function triggerFileInput() {
+    document.getElementById('fileMenu').style.display = 'none';
+    document.getElementById('fileInput').click();
+}
 
+// Xử lý xem trước ảnh trước khi gửi
+let previewImageFile = null;
+const imageInput = document.getElementById('imageInput');
+const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+const imagePreview = document.getElementById('imagePreview');
+
+imageInput.addEventListener('change', function () {
+    if (!imageInput.files || imageInput.files.length === 0) return;
+    const file = imageInput.files[0];
+    if (!file.type.startsWith('image/')) return;
+    previewImageFile = file;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        imagePreview.src = e.target.result;
+        imagePreviewContainer.style.display = 'flex';
+    };
+    reader.readAsDataURL(file);
+});
+
+// Resize/nén ảnh trước khi upload
+async function resizeImageFile(file, maxSize = 1024, quality = 0.8) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            img.onload = function () {
+                let w = img.width;
+                let h = img.height;
+                if (w > h && w > maxSize) {
+                    h = Math.round(h * maxSize / w);
+                    w = maxSize;
+                } else if (h > w && h > maxSize) {
+                    w = Math.round(w * maxSize / h);
+                    h = maxSize;
+                } else if (w > maxSize) {
+                    w = h = maxSize;
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                canvas.toBlob(blob => {
+                    resolve(blob);
+                }, 'image/jpeg', quality);
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+window.sendImagePreview = async function () {
+    if (!previewImageFile) return;
+    // Resize/nén ảnh trước khi upload
+    let uploadFile = previewImageFile;
+    try {
+        uploadFile = await resizeImageFile(previewImageFile, 1024, 0.8);
+    } catch (e) {
+        // Nếu lỗi thì gửi file gốc
+        uploadFile = previewImageFile;
+    }
+    const formData = new FormData();
+    formData.append('file', uploadFile, previewImageFile.name);
     try {
         const response = await fetch('/api/upload', {
             method: 'POST',
@@ -182,10 +283,48 @@ fileInput.addEventListener('change', async function () {
         });
         const data = await response.json();
         if (data.url) {
-            // Gửi tin nhắn kiểu ảnh hoặc file
             const messageData = {
                 content: data.url,
-                type: data.type // 'image' hoặc 'file'
+                type: 'image'
+            };
+            socket.emit('message:send', messageData);
+        } else {
+            showNotification('Tải ảnh thất bại', 'error');
+        }
+    } catch (err) {
+        showNotification('Lỗi khi tải ảnh', 'error');
+    }
+    imagePreviewContainer.style.display = 'none';
+    imagePreview.src = '';
+    previewImageFile = null;
+    imageInput.value = '';
+};
+
+window.cancelImagePreview = function () {
+    imagePreviewContainer.style.display = 'none';
+    imagePreview.src = '';
+    previewImageFile = null;
+    imageInput.value = '';
+};
+
+// Xử lý gửi file
+const fileInput = document.getElementById('fileInput');
+fileInput.addEventListener('change', async function () {
+    if (!fileInput.files || fileInput.files.length === 0) return;
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.url) {
+            const messageData = {
+                content: data.url,
+                type: 'file',
+                fileName: data.originalName
             };
             socket.emit('message:send', messageData);
         } else {
@@ -195,4 +334,18 @@ fileInput.addEventListener('change', async function () {
         showNotification('Lỗi khi tải file', 'error');
     }
     fileInput.value = '';
-}); 
+});
+
+function renderOnlineUsers(userList) {
+    const onlineUsersDiv = document.getElementById('onlineUsers');
+    onlineUsersDiv.innerHTML = '';
+    userList.forEach(username => {
+        const userElement = document.createElement('div');
+        userElement.className = 'user-item';
+        userElement.innerHTML = `
+            <i class="fas fa-circle online-icon"></i>
+            <span>${username}</span>
+        `;
+        onlineUsersDiv.appendChild(userElement);
+    });
+} 
