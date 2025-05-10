@@ -11,6 +11,12 @@ A modern real-time chat application built with Node.js, Express, Socket.IO, and 
 - **Typing indicators**
 - **Support for text, emoji, images, and file attachments**
 - **Send and preview images/files** in chat
+- **Image preview before sending** (see a thumbnail before uploading)
+- **Automatic image resize & compression** before upload (save bandwidth)
+- **Send files with original name (including Vietnamese characters)**
+- **Download files with correct original name**
+- **Modern file/image upload menu** (choose image or file, beautiful UI)
+- **Beautiful file message UI** (icon, file name, download button)
 - **Dark mode** (toggle theme)
 - **Emoji picker**
 - **Notification sounds** for new messages
