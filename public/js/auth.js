@@ -14,6 +14,20 @@ function showLoginForm() {
     document.getElementById('loginForm').style.display = 'flex';
 }
 
+// Helper: Cookie
+function setCookie(name, value, maxAgeSeconds) {
+    document.cookie = `${name}=${value}; max-age=${maxAgeSeconds}; path=/`;
+}
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+}
+function deleteCookie(name) {
+    document.cookie = `${name}=; Max-Age=0; path=/`;
+}
+
 // Handle login
 async function handleLogin() {
     const email = document.getElementById('email').value.trim();
@@ -42,7 +56,10 @@ async function handleLogin() {
         // Store auth data
         currentUser = data.user;
         authToken = data.token;
-        localStorage.setItem('authToken', data.token);
+        setCookie('authToken', data.token, 86400); // 24 giờ
+        if (data.refreshToken) {
+            setCookie('refreshToken', data.refreshToken, 86400);
+        }
 
         // Update UI
         document.getElementById('currentUser').textContent = currentUser.username;
@@ -102,9 +119,11 @@ async function handleRegister() {
 
 // Check if user is already logged in
 function checkAuth() {
-    const token = localStorage.getItem('authToken');
+    const token = getCookie('authToken');
     if (token) {
         verifyToken(token);
+    } else {
+        showLoginForm();
     }
 }
 
@@ -132,10 +151,10 @@ async function verifyToken(token) {
                 initializeChat();
             }
         } else {
-            localStorage.removeItem('authToken');
+            deleteCookie('authToken');
         }
     } catch (error) {
-        localStorage.removeItem('authToken');
+        deleteCookie('authToken');
     }
 }
 
@@ -143,13 +162,13 @@ async function verifyToken(token) {
 function handleLogout() {
     currentUser = null;
     authToken = null;
-    localStorage.removeItem('authToken');
-
+    deleteCookie('authToken');
+    deleteCookie('refreshToken');
     // Gọi API logout để set isOnline=false
     fetch('/api/auth/logout', {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            'Authorization': `Bearer ${getCookie('authToken')}`
         }
     }).catch(() => { });
 

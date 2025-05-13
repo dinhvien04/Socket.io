@@ -18,7 +18,11 @@ const messageSchema = new mongoose.Schema({
     room: {
         type: String,
         default: 'general'
-    }
+    },
+    hiddenFor: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }]
 }, {
     timestamps: true
 });

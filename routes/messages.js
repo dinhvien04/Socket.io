@@ -27,10 +27,26 @@ router.post('/upload', auth, upload.single('file'), (req, res) => {
     res.json({ url: fileUrl, type });
 });
 
-// Get message history
+// Hide message for current user
+router.put('/:id/hide', auth, async (req, res) => {
+    try {
+        const message = await Message.findById(req.params.id);
+        if (!message) return res.status(404).json({ error: 'Message not found' });
+        // Nếu user đã ẩn rồi thì không thêm nữa
+        if (!message.hiddenFor.includes(req.user.id)) {
+            message.hiddenFor.push(req.user.id);
+            await message.save();
+        }
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get message history (filter hidden)
 router.get('/', auth, async (req, res) => {
     try {
-        const messages = await Message.find()
+        const messages = await Message.find({ hiddenFor: { $ne: req.user.id } })
             .sort({ createdAt: -1 })
             .limit(50)
             .populate('sender', 'username')

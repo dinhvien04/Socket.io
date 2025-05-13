@@ -59,7 +59,14 @@
                             <div id="profileEmail" style="font-size: 0.95em; color: #bdbdbd;"></div>
                         </div>
                     </div>
-                    <button class="btn-logout" onclick="handleLogout()">Đăng xuất</button>
+                    <div class="profile-actions">
+                        <a href="profile.html" class="btn-profile" onclick="goToProfile()">
+                            <i class="fas fa-user-cog"></i> Quản lý tài khoản
+                        </a>
+                        <button class="btn-logout" onclick="handleLogout()">
+                            <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                        </button>
+                    </div>
                 </div>
                 <div class="online-users">
                     <h3><i class="fas fa-circle online-icon"></i> Người Dùng Trực Tuyến</h3>
@@ -102,7 +109,7 @@
                 <!-- Image Preview -->
                 <div id="imagePreviewContainer" class="image-preview-container" style="display:none;">
                     <img id="imagePreview" class="image-preview" src="" alt="Preview" />
-                    <div class="preview-actions">
+                    <div class="preview-btn-group">
                         <button onclick="sendImagePreview()" class="btn-login">Gửi</button>
                         <button onclick="cancelImagePreview()" class="btn-register">Hủy</button>
                     </div>
@@ -119,6 +126,54 @@
     <script src="js/auth.js"></script>
     <script src="js/chat.js"></script>
     <script src="js/ui.js"></script>
+    <script>
+        function goToProfile() {
+            const token = getCookie('authToken');
+            if (token) {
+                window.location.href = 'profile.html';
+            } else {
+                showToast('Vui lòng đăng nhập', 'error');
+            }
+            return false;
+        }
+    </script>
+
+    <!-- User Info Popup -->
+    <div id="userInfoPopup" class="user-info-popup" style="display: none;">
+        <div class="user-info-content">
+            <div class="user-info-header">
+                <div class="user-info-avatar">
+                    <img id="userInfoAvatar" src="uploads/avatars/default-avatar.png" alt="Ảnh Đại Diện">
+                </div>
+                <div class="user-info-name">
+                    <h3 id="userInfoUsername"></h3>
+                    <span id="userInfoStatus" class="online-status">Đang online</span>
+                </div>
+                <button class="close-popup" onclick="closeUserInfo()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="user-info-body">
+                <div class="info-item">
+                    <i class="fas fa-user"></i>
+                    <span id="userInfoFullName"></span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-envelope"></i>
+                    <span id="userInfoEmail"></span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-info-circle"></i>
+                    <span id="userInfoBio"></span>
+                </div>
+            </div>
+            <div class="user-info-footer">
+                <button class="btn-message" onclick="startPrivateChat()">
+                    <i class="fas fa-comment"></i> Nhắn Tin
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

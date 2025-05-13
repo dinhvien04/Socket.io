@@ -8,7 +8,9 @@ const path = require('path');
 const authRoutes = require('./routes/auth');
 const messageRoutes = require('./routes/messages');
 const uploadRoutes = require('./routes/upload');
+const userRoutes = require('./routes/user');
 const User = require('./models/User');
+const Message = require('./models/Message');
 
 // Load environment variables
 dotenv.config();
@@ -32,6 +34,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/users', userRoutes);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/chat-app', {
@@ -66,7 +69,7 @@ io.on('connection', (socket) => {
     });
 
     // Handle new messages
-    socket.on('message:send', (message) => {
+    socket.on('message:send', async (message) => {
         const msgData = {
             username: socket.username,
             content: message.content || message,
@@ -76,6 +79,23 @@ io.on('connection', (socket) => {
         if (message.type === 'file' && message.fileName) {
             msgData.fileName = message.fileName;
         }
+
+        // Lưu vào MongoDB
+        try {
+            const user = await User.findOne({ username: socket.username });
+            if (user) {
+                const newMsg = new Message({
+                    sender: user._id,
+                    content: msgData.content,
+                    type: msgData.type,
+                    room: message.room || 'general'
+                });
+                await newMsg.save();
+            }
+        } catch (err) {
+            console.error('Lỗi khi lưu tin nhắn:', err);
+        }
+
         // Gửi về cho chính socket gửi và các socket khác
         socket.emit('message:new', msgData);
         socket.broadcast.emit('message:new', msgData);

@@ -94,10 +94,17 @@ function appendMessage(data) {
         content = data.content || data.message;
     }
 
+    // Thêm nút xóa nếu là tin nhắn của chính user và có messageId
+    let deleteBtn = '';
+    if (data.username === currentUser.username && data._id) {
+        deleteBtn = `<button class="delete-msg-btn" onclick="deleteMessage('${data._id}', this)"><i class="fas fa-trash"></i></button>`;
+    }
+
     messageDiv.innerHTML = `
         <strong>${data.username}</strong>
         <p>${content}</p>
         <small>${new Date(data.timestamp).toLocaleTimeString()}</small>
+        ${deleteBtn}
     `;
 
     messagesDiv.appendChild(messageDiv);
@@ -121,9 +128,12 @@ async function loadMessageHistory() {
 
         messages.forEach(message => {
             appendMessage({
+                _id: message._id,
                 username: message.sender.username,
                 message: message.content,
+                content: message.content,
                 type: message.type,
+                fileName: message.fileName,
                 timestamp: message.createdAt
             });
         });
@@ -348,4 +358,141 @@ function renderOnlineUsers(userList) {
         `;
         onlineUsersDiv.appendChild(userElement);
     });
+}
+
+// Show user info
+async function showUserInfo(userId) {
+    try {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            showToast('Vui lòng đăng nhập', 'error');
+            return;
+        }
+
+        const response = await fetch(`/api/users/${userId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Không thể tải thông tin người dùng');
+        }
+
+        const user = await response.json();
+
+        // Update popup content
+        document.getElementById('userInfoAvatar').src = user.avatar ?
+            `/uploads/avatars/${user.avatar}` :
+            'uploads/avatars/default-avatar.png';
+        document.getElementById('userInfoUsername').textContent = user.username;
+        document.getElementById('userInfoFullName').textContent = user.fullName || 'Chưa cập nhật';
+        document.getElementById('userInfoEmail').textContent = user.email;
+        document.getElementById('userInfoBio').textContent = user.bio || 'Chưa có thông tin';
+
+        // Store current user ID for private chat
+        currentChatUser = userId;
+
+        // Show popup
+        document.getElementById('userInfoPopup').style.display = 'block';
+    } catch (error) {
+        showToast('Lỗi khi tải thông tin người dùng', 'error');
+    }
+}
+
+// Close user info popup
+function closeUserInfo() {
+    document.getElementById('userInfoPopup').style.display = 'none';
+    currentChatUser = null;
+}
+
+// Start private chat
+function startPrivateChat() {
+    if (!currentChatUser) return;
+
+    // Switch to private chat mode
+    isPrivateChat = true;
+    currentChatPartner = currentChatUser;
+
+    // Update UI
+    document.querySelector('.chat-header h2').textContent = 'Chat Riêng';
+    document.getElementById('messages').innerHTML = '';
+
+    // Load chat history
+    loadPrivateChatHistory(currentChatUser);
+
+    // Close popup
+    closeUserInfo();
+}
+
+// Load private chat history
+async function loadPrivateChatHistory(userId) {
+    try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        const response = await fetch(`/api/messages/private/${userId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) return;
+
+        const messages = await response.json();
+        const messagesContainer = document.getElementById('messages');
+        messagesContainer.innerHTML = '';
+
+        messages.forEach(message => {
+            const messageElement = createMessageElement(message);
+            messagesContainer.appendChild(messageElement);
+        });
+
+        // Scroll to bottom
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    } catch (error) {
+        console.error('Lỗi khi tải lịch sử chat:', error);
+    }
+}
+
+// Update online users list
+function updateOnlineUsers(users) {
+    const onlineUsersContainer = document.getElementById('onlineUsers');
+    onlineUsersContainer.innerHTML = '';
+
+    users.forEach(user => {
+        const userElement = document.createElement('div');
+        userElement.className = 'user-item';
+        userElement.innerHTML = `
+            <div class="user-avatar">
+                <img src="${user.avatar ? `/uploads/avatars/${user.avatar}` : 'uploads/avatars/default-avatar.png'}" 
+                     alt="${user.username}">
+            </div>
+            <div class="user-name" onclick="showUserInfo('${user._id}')">
+                ${user.username}
+            </div>
+        `;
+        onlineUsersContainer.appendChild(userElement);
+    });
+}
+
+// Xóa tin nhắn khỏi giao diện và gọi API ẩn tin nhắn
+window.deleteMessage = async function (messageId, btn) {
+    if (!confirm('Bạn có chắc muốn xóa tin nhắn này khỏi tài khoản của bạn?')) return;
+    try {
+        const response = await fetch(`/api/messages/${messageId}/hide`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        if (response.ok) {
+            // Ẩn tin nhắn khỏi giao diện
+            btn.closest('.message').remove();
+        } else {
+            showNotification('Không thể xóa tin nhắn', 'error');
+        }
+    } catch (err) {
+        showNotification('Lỗi khi xóa tin nhắn', 'error');
+    }
 } 

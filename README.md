@@ -25,7 +25,7 @@ A modern real-time chat application built with Node.js, Express, Socket.IO, and 
 - **View account info** (click avatar to see username/email)
 - **Logout** from account
 - **.gitignore** to keep uploads, node_modules, .env out of git
-
+- **Delete (hide) your own messages**: You can delete (hide) any message you sent, and it will disappear from your chat view but remain visible to others.
 ## Prerequisites
 
 - Node.js (v14 or higher)

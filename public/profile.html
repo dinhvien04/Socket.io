@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cài Đặt Tài Khoản - Chat App</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/profile.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <div class="profile-container">
+            <div class="profile-header">
+                <h1>Cài Đặt Tài Khoản</h1>
+                <a href="#" class="back-btn" onclick="backToChat(event)"><i class="fas fa-arrow-left"></i> Quay Lại
+                    Chat</a>
+            </div>
+
+            <!-- Tabs -->
+            <div class="profile-tabs">
+                <button id="tab-info" class="tab-btn active" onclick="showTab('info')">Thông tin tài khoản</button>
+                <button id="tab-password" class="tab-btn" onclick="showTab('password')">Đổi mật khẩu</button>
+            </div>
+
+            <div class="profile-content">
+                <div id="info-section">
+                    <div class="profile-section">
+                        <h2>Thông Tin Cá Nhân</h2>
+                        <div class="avatar-section">
+                            <div class="avatar-container">
+                                <img id="avatar-preview" src="uploads/avatars/default-avatar.png" alt="Ảnh Đại Diện">
+                                <div class="avatar-overlay">
+                                    <i class="fas fa-camera"></i>
+                                </div>
+                            </div>
+                            <input type="file" id="avatar-input" accept="image/*" style="display: none;">
+                            <button class="change-avatar-btn" onclick="document.getElementById('avatar-input').click()">
+                                Thay Đổi Ảnh Đại Diện
+                            </button>
+                        </div>
+
+                        <div class="info-section">
+                            <div class="form-group">
+                                <label for="username">Tên Đăng Nhập</label>
+                                <input type="text" id="username" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="fullName">Họ Và Tên</label>
+                                <input type="text" id="fullName" placeholder="Nhập họ và tên của bạn">
+                            </div>
+                            <div class="form-group">
+                                <label for="bio">Giới Thiệu</label>
+                                <textarea id="bio" placeholder="Giới thiệu về bản thân"></textarea>
+                            </div>
+                            <button class="save-btn" onclick="updateProfile()">Lưu Thay Đổi</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="password-section" style="display:none;">
+                    <div class="profile-section">
+                        <h2>Đổi Mật Khẩu</h2>
+                        <div class="form-group">
+                            <label for="currentPassword">Mật Khẩu Hiện Tại</label>
+                            <input type="password" id="currentPassword" placeholder="Nhập mật khẩu hiện tại">
+                        </div>
+                        <div class="form-group">
+                            <label for="newPassword">Mật Khẩu Mới</label>
+                            <input type="password" id="newPassword" placeholder="Nhập mật khẩu mới">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">Xác Nhận Mật Khẩu Mới</label>
+                            <input type="password" id="confirmPassword" placeholder="Nhập lại mật khẩu mới">
+                        </div>
+                        <button class="save-btn" onclick="changePassword()">Đổi Mật Khẩu</button>
+                    </div>
+                </div>
+
+                <div class="profile-section">
+                    <h2>Hành Động Tài Khoản</h2>
+                    <!-- <button class="danger-btn" onclick="forgotPassword()">Quên Mật Khẩu?</button> -->
+                    <button class="danger-btn" onclick="logout()">Đăng Xuất</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/profile.js"></script>
+    <script>
+        function backToChat(e) {
+            e.preventDefault();
+            window.location.href = "index.html";
+        }
+        function showTab(tab) {
+            document.getElementById('tab-info').classList.remove('active');
+            document.getElementById('tab-password').classList.remove('active');
+            document.getElementById('info-section').style.display = 'none';
+            document.getElementById('password-section').style.display = 'none';
+            if (tab === 'info') {
+                document.getElementById('tab-info').classList.add('active');
+                document.getElementById('info-section').style.display = '';
+            } else {
+                document.getElementById('tab-password').classList.add('active');
+                document.getElementById('password-section').style.display = '';
+            }
+        }
+    </script>
+</body>
+
+</html>

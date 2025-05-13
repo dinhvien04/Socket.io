@@ -87,4 +87,15 @@ router.post('/logout', auth, async (req, res) => {
     }
 });
 
+// Verify token
+router.get('/verify', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id || req.user.userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        res.json({ user: { username: user.username, email: user.email, id: user._id } });
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 module.exports = router; 
