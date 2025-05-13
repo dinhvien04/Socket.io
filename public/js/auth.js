@@ -56,9 +56,9 @@ async function handleLogin() {
         // Store auth data
         currentUser = data.user;
         authToken = data.token;
-        setCookie('authToken', data.token, 86400); // 24 giờ
+        setCookie('authToken', data.token, 3600); // 1 giờ
         if (data.refreshToken) {
-            setCookie('refreshToken', data.refreshToken, 86400);
+            setCookie('refreshToken', data.refreshToken, 3600);
         }
 
         // Update UI

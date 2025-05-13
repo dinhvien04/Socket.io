@@ -476,12 +476,12 @@ function updateOnlineUsers(users) {
     });
 }
 
-// Xóa tin nhắn khỏi giao diện và gọi API ẩn tin nhắn
+// Xóa tin nhắn khỏi giao diện và gọi API xóa thật sự
 window.deleteMessage = async function (messageId, btn) {
-    if (!confirm('Bạn có chắc muốn xóa tin nhắn này khỏi tài khoản của bạn?')) return;
+    if (!confirm('Bạn có chắc muốn xóa tin nhắn này cho tất cả mọi người?')) return;
     try {
-        const response = await fetch(`/api/messages/${messageId}/hide`, {
-            method: 'PUT',
+        const response = await fetch(`/api/messages/${messageId}`, {
+            method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${authToken}`
             }

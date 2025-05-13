@@ -97,4 +97,19 @@ router.get('/room/:room', auth, async (req, res) => {
     }
 });
 
+// Delete message for everyone (only sender can delete)
+router.delete('/:id', auth, async (req, res) => {
+    try {
+        const message = await Message.findById(req.params.id);
+        if (!message) return res.status(404).json({ error: 'Message not found' });
+        if (String(message.sender) !== String(req.user.id)) {
+            return res.status(403).json({ error: 'Bạn chỉ có thể xóa tin nhắn của chính mình.' });
+        }
+        await message.deleteOne();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 module.exports = router; 
