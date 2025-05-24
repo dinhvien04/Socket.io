@@ -938,4 +938,10 @@ img.chat-image {
 }
 .preview-btn-group button:hover {
     background: #1565c0;
+}
+
+.message p {
+    word-break: break-word;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
 } 

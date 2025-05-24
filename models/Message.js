@@ -19,6 +19,13 @@ const messageSchema = new mongoose.Schema({
         type: String,
         default: 'general'
     },
+    edited: {
+        type: Boolean,
+        default: false
+    },
+    editedAt: {
+        type: Date
+    },
     hiddenFor: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'

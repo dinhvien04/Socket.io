@@ -1,6 +1,14 @@
 const multer = require('multer');
 const path = require('path');
 
+// Hàm xử lý tên file tiếng Việt
+function sanitizeFileName(fileName) {
+    // Loại bỏ dấu và chuyển về ASCII
+    return fileName.normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9.-]/g, '_');
+}
+
 // Cấu hình storage
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -9,7 +17,9 @@ const storage = multer.diskStorage({
     filename: function (req, file, cb) {
         // Tạo tên file ngẫu nhiên + timestamp để tránh trùng
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
+        const sanitizedName = sanitizeFileName(path.parse(file.originalname).name);
+        const ext = path.extname(file.originalname);
+        cb(null, sanitizedName + '-' + uniqueSuffix + ext);
     }
 });
 
@@ -28,7 +38,7 @@ const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
     limits: {
-        fileSize: 10 * 1024 * 1024 // Giới hạn 5MB
+        fileSize: 10 * 1024 * 1024 // Giới hạn 10MB
     }
 });
 

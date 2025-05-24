@@ -112,4 +112,33 @@ router.delete('/:id', auth, async (req, res) => {
     }
 });
 
+// Edit message (only sender can edit)
+router.put('/:id', auth, async (req, res) => {
+    try {
+        const { content } = req.body;
+        const message = await Message.findById(req.params.id);
+
+        if (!message) {
+            return res.status(404).json({ error: 'Message not found' });
+        }
+
+        if (String(message.sender) !== String(req.user.id)) {
+            return res.status(403).json({ error: 'Bạn chỉ có thể chỉnh sửa tin nhắn của chính mình.' });
+        }
+
+        message.content = content;
+        message.edited = true;
+        message.editedAt = new Date();
+        await message.save();
+
+        const updatedMessage = await Message.findById(message._id)
+            .populate('sender', 'username')
+            .lean();
+
+        res.json(updatedMessage);
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 module.exports = router; 

@@ -72,6 +72,7 @@ function appendMessage(data) {
     const messagesDiv = document.getElementById('messages');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${data.username === currentUser.username ? 'sent' : 'received'}`;
+    messageDiv.dataset.msgId = data._id;
 
     let content = '';
     if (data.type === 'emoji') {
@@ -94,18 +95,44 @@ function appendMessage(data) {
         content = data.content || data.message;
     }
 
-    // Thêm nút xóa nếu là tin nhắn của chính user và có messageId
-    let deleteBtn = '';
-    if (data.username === currentUser.username && data._id) {
-        deleteBtn = `<button class="delete-msg-btn" onclick="deleteMessage('${data._id}', this)"><i class="fas fa-trash"></i></button>`;
+    // Hiển thị trạng thái đã chỉnh sửa
+    let editedTag = '';
+    if (data.edited) {
+        editedTag = `<span style='font-size:10px;color:#ccc;'>(đã chỉnh sửa)</span>`;
     }
 
-    messageDiv.innerHTML = `
-        <strong>${data.username}</strong>
-        <p>${content}</p>
-        <small>${new Date(data.timestamp).toLocaleTimeString()}</small>
-        ${deleteBtn}
-    `;
+    // Nút xóa và chỉnh sửa nếu là tin nhắn của chính user
+    let actionBtns = '';
+    if (data.username === currentUser.username && data._id) {
+        actionBtns = `
+            <button class="edit-msg-btn" onclick="startEditMessage('${data._id}', this)"><i class="fas fa-pen"></i></button>
+            <button class="delete-msg-btn" onclick="deleteMessage('${data._id}', this)"><i class="fas fa-trash"></i></button>
+        `;
+    }
+
+    // Nếu đang chỉnh sửa tin nhắn này
+    if (editingMsgId === data._id) {
+        messageDiv.innerHTML = `
+            <strong>${data.username}</strong>
+            <input type="text" class="edit-msg-input" value="${data.content || data.message}" style="width:70%" />
+            <button onclick="saveEditMessage('${data._id}', this)">Lưu</button>
+            <button onclick="cancelEditMessage()">Hủy</button>
+            <small>${new Date(data.timestamp).toLocaleTimeString()}</small>
+            ${editedTag}
+        `;
+        setTimeout(() => {
+            editingInput = messageDiv.querySelector('.edit-msg-input');
+            if (editingInput) editingInput.focus();
+        }, 0);
+    } else {
+        messageDiv.innerHTML = `
+            <strong>${data.username}</strong>
+            <p>${content}</p>
+            <small>${new Date(data.timestamp).toLocaleTimeString()}</small>
+            ${editedTag}
+            ${actionBtns}
+        `;
+    }
 
     messagesDiv.appendChild(messageDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -495,4 +522,64 @@ window.deleteMessage = async function (messageId, btn) {
     } catch (err) {
         showNotification('Lỗi khi xóa tin nhắn', 'error');
     }
+}
+
+// Biến lưu trạng thái chỉnh sửa
+let editingMsgId = null;
+let editingInput = null;
+
+// Bắt đầu chỉnh sửa
+function startEditMessage(msgId, btn) {
+    editingMsgId = msgId;
+    reloadMessagesUI();
+}
+
+// Lưu chỉnh sửa
+function saveEditMessage(msgId, btn) {
+    const input = document.querySelector('.edit-msg-input');
+    if (!input) return;
+    const newContent = input.value.trim();
+    if (!newContent) return;
+    socket.emit('message:edit', { messageId: msgId, newContent });
+    editingMsgId = null;
+    reloadMessagesUI();
+}
+
+// Hủy chỉnh sửa
+function cancelEditMessage() {
+    editingMsgId = null;
+    reloadMessagesUI();
+}
+
+// Lắng nghe sự kiện sửa tin nhắn
+if (socket) {
+    socket.on('message:edited', (updatedMsg) => {
+        updateMessageInUI(updatedMsg);
+    });
+}
+
+// Cập nhật lại tin nhắn đã chỉnh sửa trên UI
+function updateMessageInUI(updatedMsg) {
+    const messagesDiv = document.getElementById('messages');
+    const msgDivs = messagesDiv.querySelectorAll('.message');
+    msgDivs.forEach(div => {
+        if (div.dataset.msgId === updatedMsg.id || div.dataset.msgId === updatedMsg._id) {
+            div.querySelector('p').textContent = updatedMsg.content;
+            if (updatedMsg.edited) {
+                let tag = div.querySelector('span[style*="color:#ccc"]');
+                if (!tag) {
+                    tag = document.createElement('span');
+                    tag.style.fontSize = '10px';
+                    tag.style.color = '#ccc';
+                    div.appendChild(tag);
+                }
+                tag.textContent = '(đã chỉnh sửa)';
+            }
+        }
+    });
+}
+
+// Reload lại UI tin nhắn (dùng lại loadMessageHistory)
+function reloadMessagesUI() {
+    loadMessageHistory();
 } 

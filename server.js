@@ -91,14 +91,55 @@ io.on('connection', (socket) => {
                     room: message.room || 'general'
                 });
                 await newMsg.save();
+                // Lấy lại tin nhắn đã lưu với đầy đủ thông tin
+                const populatedMsg = await Message.findById(newMsg._id).populate('sender', 'username').lean();
+                const msgToSend = {
+                    _id: populatedMsg._id,
+                    username: socket.username,
+                    content: populatedMsg.content,
+                    type: populatedMsg.type,
+                    fileName: populatedMsg.fileName,
+                    edited: populatedMsg.edited,
+                    timestamp: populatedMsg.createdAt
+                };
+                socket.emit('message:new', msgToSend);
+                socket.broadcast.emit('message:new', msgToSend);
+                return;
             }
         } catch (err) {
             console.error('Lỗi khi lưu tin nhắn:', err);
         }
+    });
 
-        // Gửi về cho chính socket gửi và các socket khác
-        socket.emit('message:new', msgData);
-        socket.broadcast.emit('message:new', msgData);
+    // Handle message edit
+    socket.on('message:edit', async (data) => {
+        try {
+            const user = await User.findOne({ username: socket.username });
+            if (!user) return;
+
+            const message = await Message.findById(data.messageId);
+            if (!message || String(message.sender) !== String(user._id)) return;
+
+            message.content = data.newContent;
+            message.edited = true;
+            message.editedAt = new Date();
+            await message.save();
+
+            const updatedMsgData = {
+                id: message._id,
+                username: socket.username,
+                content: message.content,
+                type: message.type,
+                edited: true,
+                editedAt: message.editedAt,
+                timestamp: message.createdAt
+            };
+
+            // Broadcast edited message to all clients
+            io.emit('message:edited', updatedMsgData);
+        } catch (err) {
+            console.error('Lỗi khi chỉnh sửa tin nhắn:', err);
+        }
     });
 
     // Handle typing status
