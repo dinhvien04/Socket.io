@@ -70,6 +70,7 @@ io.on('connection', (socket) => {
 
     // Handle new messages
     socket.on('message:send', async (message) => {
+        console.log('[SOCKET] Nhận message:send', message);
         const msgData = {
             username: socket.username,
             content: message.content || message,
@@ -79,8 +80,6 @@ io.on('connection', (socket) => {
         if (message.type === 'file' && message.fileName) {
             msgData.fileName = message.fileName;
         }
-
-        // Lưu vào MongoDB
         try {
             const user = await User.findOne({ username: socket.username });
             if (user) {
@@ -91,7 +90,7 @@ io.on('connection', (socket) => {
                     room: message.room || 'general'
                 });
                 await newMsg.save();
-                // Lấy lại tin nhắn đã lưu với đầy đủ thông tin
+                // console.log('[SOCKET] Đã lưu message vào MongoDB:', newMsg);
                 const populatedMsg = await Message.findById(newMsg._id).populate('sender', 'username').lean();
                 const msgToSend = {
                     _id: populatedMsg._id,
@@ -107,7 +106,7 @@ io.on('connection', (socket) => {
                 return;
             }
         } catch (err) {
-            console.error('Lỗi khi lưu tin nhắn:', err);
+            // console.error('[SOCKET] Lỗi khi lưu tin nhắn:', err);
         }
     });
 

@@ -23,8 +23,13 @@ router.post('/', upload.single('file'), (req, res) => {
 
         // Trả về URL, tên file gốc và tên file đã lưu trên server
         const fileUrl = `/uploads/${req.file.filename}`;
+        // Xác định type
+        let type = 'file';
+        if (req.file.mimetype.startsWith('image/')) type = 'image';
+        if (req.file.mimetype.startsWith('audio/')) type = 'audio';
         res.json({
-            url: fileUrl,
+            fileUrl: fileUrl,
+            type: type,
             originalName: req.file.originalname,
             serverFileName: req.file.filename
         });

@@ -68,7 +68,7 @@ function sendMessage() {
 
 // Append message to chat
 function appendMessage(data) {
-    console.log('Render appendMessage:', data);
+    console.log('[RENDER] appendMessage:', data);
     const messagesDiv = document.getElementById('messages');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${data.username === currentUser.username ? 'sent' : 'received'}`;
@@ -76,15 +76,14 @@ function appendMessage(data) {
 
     let content;
     if (data.type === 'audio' && data.content) {
-        // Tạo id duy nhất cho mỗi voice message
-        const audioId = `voice-${data._id}`;
-        content = `
-        <div class="voice-message" id="${audioId}">
-            <button class="voice-play-btn" data-id="${audioId}"><i class="fas fa-play"></i></button>
-            <div class="voice-wave" id="${audioId}-wave"></div>
-            <span class="voice-duration" id="${audioId}-duration">0:00</span>
-        </div>
-        `;
+        let audioUrl = data.content;
+        if (audioUrl instanceof Blob) {
+            audioUrl = URL.createObjectURL(audioUrl);
+        }
+        if (typeof audioUrl === 'string' && audioUrl.startsWith('/uploads/')) {
+            audioUrl = window.location.origin + audioUrl;
+        }
+        content = `<audio controls src="${audioUrl}" style="width:180px;outline:none;border-radius:8px;"></audio>`;
     } else if (data.type === 'image' && data.content) {
         content = `<img src="${data.content}" class="chat-image" alt="image" />`;
     } else if (data.type === 'file' && data.content) {
@@ -134,52 +133,6 @@ function appendMessage(data) {
 
     messagesDiv.appendChild(messageDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-    // Sau khi render xong, nếu là audio thì khởi tạo wavesurfer
-    if (data.type === 'audio' && data.content) {
-        setTimeout(() => {
-            const audioId = `voice-${data._id}`;
-            const wavesurfer = WaveSurfer.create({
-                container: `#${audioId}-wave`,
-                waveColor: '#fff',
-                progressColor: '#2196f3',
-                height: 32,
-                barWidth: 2,
-                responsive: true,
-                interact: false,
-                cursorWidth: 0
-            });
-            wavesurfer.load(data.content);
-            // Hiển thị thời lượng khi đã load xong
-            wavesurfer.on('ready', () => {
-                const duration = Math.round(wavesurfer.getDuration());
-                const min = Math.floor(duration / 60);
-                const sec = duration % 60;
-                document.getElementById(`${audioId}-duration`).textContent = `${min}:${sec.toString().padStart(2, '0')}`;
-            });
-            // Play/pause khi bấm nút
-            const playBtn = document.querySelector(`#${audioId} .voice-play-btn`);
-            let isPlaying = false;
-            playBtn.addEventListener('click', () => {
-                if (!isPlaying) {
-                    wavesurfer.play();
-                    playBtn.classList.add('active');
-                    playBtn.innerHTML = '<i class="fas fa-pause"></i>';
-                } else {
-                    wavesurfer.pause();
-                    playBtn.classList.remove('active');
-                    playBtn.innerHTML = '<i class="fas fa-play"></i>';
-                }
-                isPlaying = !isPlaying;
-            });
-            // Khi phát xong thì chuyển lại nút play
-            wavesurfer.on('finish', () => {
-                isPlaying = false;
-                playBtn.classList.remove('active');
-                playBtn.innerHTML = '<i class="fas fa-play"></i>';
-            });
-        }, 0);
-    }
 }
 
 // Load message history
@@ -190,13 +143,11 @@ async function loadMessageHistory() {
                 'Authorization': `Bearer ${authToken}`
             }
         });
-
         if (!response.ok) throw new Error('Không thể tải lịch sử tin nhắn');
-
         const messages = await response.json();
+        console.log('[HISTORY] Tin nhắn từ API:', messages);
         const messagesDiv = document.getElementById('messages');
         messagesDiv.innerHTML = '';
-
         messages.forEach(message => {
             appendMessage({
                 _id: message._id,
@@ -208,7 +159,6 @@ async function loadMessageHistory() {
                 timestamp: message.createdAt
             });
         });
-
     } catch (error) {
         showNotification('Không thể tải lịch sử tin nhắn', 'error');
     }
@@ -549,6 +499,13 @@ function updateOnlineUsers(users) {
 
 // Xóa tin nhắn khỏi giao diện và gọi API xóa thật sự
 window.deleteMessage = async function (messageId, btn) {
+    // Nếu là tin nhắn pending (chưa gửi lên server)
+    if (messageId.startsWith('pending-')) {
+        // Xóa khỏi giao diện
+        const msgDiv = btn.closest('.message');
+        if (msgDiv) msgDiv.remove();
+        return;
+    }
     if (!confirm('Bạn có chắc muốn xóa tin nhắn này cho tất cả mọi người?')) return;
     try {
         const response = await fetch(`/api/messages/${messageId}`, {
@@ -731,4 +688,17 @@ sendRecordBtn.onclick = async function () {
 };
 recordBtn.onclick = startRecording;
 stopRecordBtn.onclick = stopRecording;
-cancelRecordBtn.onclick = cancelRecording; 
+cancelRecordBtn.onclick = cancelRecording;
+
+// Lắng nghe message:new từ server, nếu là của mình và có pending thì xóa pending trước khi render
+if (socket) {
+    socket.on('message:new', (data) => {
+        // Nếu là tin nhắn của mình và là audio, xóa pending
+        if (data.username === currentUser.username && data.type === 'audio') {
+            const messagesDiv = document.getElementById('messages');
+            const pendingDiv = messagesDiv.querySelector('.message[data-msg-id^="pending-"]');
+            if (pendingDiv) pendingDiv.remove();
+        }
+        appendMessage(data);
+    });
+} 
