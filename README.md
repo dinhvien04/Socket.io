@@ -26,6 +26,8 @@ A modern real-time chat application built with Node.js, Express, Socket.IO, and 
 - **Logout** from account
 - **.gitignore** to keep uploads, node_modules, .env out of git
 - **Delete (hide) your own messages**: You can delete (hide) any message you sent, and it will disappear from your chat view but remain visible to others.
+- **Voice message (Record and send voice messages):** Record directly in the browser, send the recording file to the server, everyone can listen to the voice message even when reloading the page or logging in from another device.
+
 ## Prerequisites
 
 - Node.js (v14 or higher)
