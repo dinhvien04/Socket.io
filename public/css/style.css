@@ -945,3 +945,167 @@ img.chat-image {
     white-space: pre-line;
     overflow-wrap: anywhere;
 } 
+.icon-edit {
+    color: #FFD600; /* vàng */
+    cursor: pointer;
+  }
+  .icon-delete {
+    color: #FF1744; /* đỏ */
+    cursor: pointer;
+  }
+
+  .record-btn {
+    background: #ff9800;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    margin-right: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+  }
+  .record-btn.recording {
+    background: #d32f2f;
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 #d32f2f55; }
+    70% { box-shadow: 0 0 0 10px #d32f2f00; }
+    100% { box-shadow: 0 0 0 0 #d32f2f00; }
+  }
+  .btn-save-edit {
+    background: #43a047;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 4px 14px;
+    margin-right: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+.btn-save-edit:hover {
+    background: #388e3c;
+}
+.btn-cancel-edit {
+    background: #e53935;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 4px 14px;
+    margin-right: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+.btn-cancel-edit:hover {
+    background: #b71c1c;
+}
+
+.voice-message {
+  display: flex;
+  align-items: center;
+  background: var(--message-sent);
+  border-radius: 16px;
+  padding: 8px 16px;
+  gap: 12px;
+  min-width: 120px;
+  max-width: 320px;
+  color: #fff;
+  position: relative;
+}
+.voice-play-btn {
+  background: #fff;
+  color: var(--message-sent);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2em;
+  cursor: pointer;
+  margin-right: 6px;
+  transition: background 0.2s;
+}
+.voice-play-btn.active {
+  background: #2196f3;
+  color: #fff;
+}
+.voice-wave {
+  flex: 1;
+  min-width: 60px;
+  max-width: 180px;
+  height: 32px;
+  margin: 0 8px;
+}
+.voice-duration {
+  font-size: 0.98em;
+  color: #fff;
+  min-width: 38px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.voice-recording-ui {
+  display: flex;
+  align-items: center;
+  background: var(--message-sent);
+  border-radius: 16px;
+  padding: 8px 16px;
+  gap: 12px;
+  min-width: 120px;
+  max-width: 420px;
+  color: #fff;
+  margin: 0 auto 8px auto;
+  position: relative;
+  box-shadow: 0 2px 8px #0002;
+}
+.voice-recording-ui .record-btn {
+  background: #fff;
+  color: var(--message-sent);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2em;
+  cursor: pointer;
+  margin-right: 6px;
+  transition: background 0.2s;
+}
+.voice-recording-ui .record-btn:last-child {
+  margin-right: 0;
+}
+.voice-recording-ui .record-btn[style*="background:#1976d2"] {
+  background: #1976d2 !important;
+  color: #fff !important;
+}
+.voice-recording-ui .record-btn[style*="background:#2196f3"] {
+  background: #2196f3 !important;
+  color: #fff !important;
+}
+.voice-recording-bar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#recordingTime {
+  font-size: 1.1em;
+  letter-spacing: 1px;
+  background: #2196f3;
+  color: #fff;
+  border-radius: 12px;
+  padding: 4px 14px;
+  min-width: 48px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}

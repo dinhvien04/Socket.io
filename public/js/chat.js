@@ -74,23 +74,21 @@ function appendMessage(data) {
     messageDiv.className = `message ${data.username === currentUser.username ? 'sent' : 'received'}`;
     messageDiv.dataset.msgId = data._id;
 
-    let content = '';
-    if (data.type === 'emoji') {
-        content = `<span style="font-size: 2em;">${data.content || data.message}</span>`;
-    } else if (data.type === 'image') {
-        content = `<img src="${data.content}" alt="image" style="max-width:180px;max-height:180px;border-radius:8px;box-shadow:0 2px 8px #0002;" />`;
-    } else if (data.type === 'file') {
-        const fileName = data.fileName || data.content.split('/').pop();
+    let content;
+    if (data.type === 'audio' && data.content) {
+        // Tạo id duy nhất cho mỗi voice message
+        const audioId = `voice-${data._id}`;
         content = `
-            <div class="file-message" style="background:#f5f5f5;padding:10px;border-radius:8px;display:flex;align-items:center;gap:10px;">
-                <i class="fas fa-file" style="font-size:24px;color:#2196f3;"></i>
-                <div style="flex:1;">
-                    <div style="font-weight:500;color:#333;">${fileName}</div>
-                    <a href="${data.content}" target="_blank" download="${fileName}" style="color:#2196f3;text-decoration:none;font-size:0.9em;">
-                        <i class="fas fa-download"></i> Tải xuống
-                    </a>
-                </div>
-            </div>`;
+        <div class="voice-message" id="${audioId}">
+            <button class="voice-play-btn" data-id="${audioId}"><i class="fas fa-play"></i></button>
+            <div class="voice-wave" id="${audioId}-wave"></div>
+            <span class="voice-duration" id="${audioId}-duration">0:00</span>
+        </div>
+        `;
+    } else if (data.type === 'image' && data.content) {
+        content = `<img src="${data.content}" class="chat-image" alt="image" />`;
+    } else if (data.type === 'file' && data.content) {
+        content = `<div><a href="${data.content}" target="_blank"><i class="fas fa-download"></i> Tải xuống</a></div>`;
     } else {
         content = data.content || data.message;
     }
@@ -105,8 +103,8 @@ function appendMessage(data) {
     let actionBtns = '';
     if (data.username === currentUser.username && data._id) {
         actionBtns = `
-            <button class="edit-msg-btn" onclick="startEditMessage('${data._id}', this)"><i class="fas fa-pen"></i></button>
-            <button class="delete-msg-btn" onclick="deleteMessage('${data._id}', this)"><i class="fas fa-trash"></i></button>
+            <button class="edit-msg-btn" onclick="startEditMessage('${data._id}', this)"><i class="fas fa-pen icon-edit"></i></button>
+            <button class="delete-msg-btn" onclick="deleteMessage('${data._id}', this)"><i class="fas fa-trash icon-delete"></i></button>
         `;
     }
 
@@ -115,8 +113,8 @@ function appendMessage(data) {
         messageDiv.innerHTML = `
             <strong>${data.username}</strong>
             <input type="text" class="edit-msg-input" value="${data.content || data.message}" style="width:70%" />
-            <button onclick="saveEditMessage('${data._id}', this)">Lưu</button>
-            <button onclick="cancelEditMessage()">Hủy</button>
+            <button class="btn-save-edit" onclick="saveEditMessage('${data._id}', this)">Lưu</button>
+            <button class="btn-cancel-edit" onclick="cancelEditMessage()">Hủy</button>
             <small>${new Date(data.timestamp).toLocaleTimeString()}</small>
             ${editedTag}
         `;
@@ -136,6 +134,52 @@ function appendMessage(data) {
 
     messagesDiv.appendChild(messageDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    // Sau khi render xong, nếu là audio thì khởi tạo wavesurfer
+    if (data.type === 'audio' && data.content) {
+        setTimeout(() => {
+            const audioId = `voice-${data._id}`;
+            const wavesurfer = WaveSurfer.create({
+                container: `#${audioId}-wave`,
+                waveColor: '#fff',
+                progressColor: '#2196f3',
+                height: 32,
+                barWidth: 2,
+                responsive: true,
+                interact: false,
+                cursorWidth: 0
+            });
+            wavesurfer.load(data.content);
+            // Hiển thị thời lượng khi đã load xong
+            wavesurfer.on('ready', () => {
+                const duration = Math.round(wavesurfer.getDuration());
+                const min = Math.floor(duration / 60);
+                const sec = duration % 60;
+                document.getElementById(`${audioId}-duration`).textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+            });
+            // Play/pause khi bấm nút
+            const playBtn = document.querySelector(`#${audioId} .voice-play-btn`);
+            let isPlaying = false;
+            playBtn.addEventListener('click', () => {
+                if (!isPlaying) {
+                    wavesurfer.play();
+                    playBtn.classList.add('active');
+                    playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                } else {
+                    wavesurfer.pause();
+                    playBtn.classList.remove('active');
+                    playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                }
+                isPlaying = !isPlaying;
+            });
+            // Khi phát xong thì chuyển lại nút play
+            wavesurfer.on('finish', () => {
+                isPlaying = false;
+                playBtn.classList.remove('active');
+                playBtn.innerHTML = '<i class="fas fa-play"></i>';
+            });
+        }, 0);
+    }
 }
 
 // Load message history
@@ -582,4 +626,109 @@ function updateMessageInUI(updatedMsg) {
 // Reload lại UI tin nhắn (dùng lại loadMessageHistory)
 function reloadMessagesUI() {
     loadMessageHistory();
-} 
+}
+
+// --- Voice Recording UI Logic ---
+let mediaRecorder;
+let audioChunks = [];
+let recordingInterval = null;
+let recordingSeconds = 0;
+let recordedAudioBlob = null;
+
+const recordBtn = document.getElementById('recordBtn');
+const inputContainer = document.getElementById('inputContainer');
+const voiceRecordingUI = document.getElementById('voiceRecordingUI');
+const stopRecordBtn = document.getElementById('stopRecordBtn');
+const cancelRecordBtn = document.getElementById('cancelRecordBtn');
+const sendRecordBtn = document.getElementById('sendRecordBtn');
+const recordingTime = document.getElementById('recordingTime');
+
+function showRecordingUI() {
+    inputContainer.style.display = 'none';
+    voiceRecordingUI.style.display = 'flex';
+    recordingTime.textContent = '0:00';
+    sendRecordBtn.style.display = 'none';
+    stopRecordBtn.style.display = '';
+    recordedAudioBlob = null;
+}
+function hideRecordingUI() {
+    inputContainer.style.display = '';
+    voiceRecordingUI.style.display = 'none';
+    clearInterval(recordingInterval);
+    recordingSeconds = 0;
+    recordingTime.textContent = '0:00';
+    recordedAudioBlob = null;
+}
+function startRecording() {
+    showRecordingUI();
+    recordingSeconds = 0;
+    recordingTime.textContent = '0:00';
+    recordingInterval = setInterval(() => {
+        recordingSeconds++;
+        const min = Math.floor(recordingSeconds / 60);
+        const sec = recordingSeconds % 60;
+        recordingTime.textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+    }, 1000);
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = e => {
+            if (e.data.size > 0) audioChunks.push(e.data);
+        };
+        mediaRecorder.onstop = () => {
+            clearInterval(recordingInterval);
+            recordedAudioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            sendRecordBtn.style.display = '';
+            stopRecordBtn.style.display = 'none';
+        };
+        mediaRecorder.start();
+    }).catch(() => {
+        alert('Không thể truy cập micro!');
+        hideRecordingUI();
+    });
+}
+function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+    }
+}
+function cancelRecording() {
+    hideRecordingUI();
+}
+sendRecordBtn.onclick = async function () {
+    if (!recordedAudioBlob) return;
+    // Render luôn voice message lên chat (pending)
+    const fakeId = 'pending-' + Date.now();
+    appendMessage({
+        _id: fakeId,
+        username: currentUser.username,
+        content: URL.createObjectURL(recordedAudioBlob),
+        type: 'audio',
+        timestamp: new Date(),
+        pending: true
+    });
+    // Upload file lên server
+    const formData = new FormData();
+    formData.append('file', recordedAudioBlob, 'voice-message.webm');
+    formData.append('type', 'audio');
+    try {
+        const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await res.json();
+        if (data && data.fileUrl) {
+            socket.emit('message:send', {
+                type: 'audio',
+                content: data.fileUrl
+            });
+        }
+    } catch (e) {
+        showNotification('Lỗi khi gửi file ghi âm', 'error');
+    }
+    hideRecordingUI();
+};
+recordBtn.onclick = startRecording;
+stopRecordBtn.onclick = stopRecording;
+cancelRecordBtn.onclick = cancelRecording; 

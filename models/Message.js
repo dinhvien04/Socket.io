@@ -12,7 +12,7 @@ const messageSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['text', 'image', 'emoji'],
+        enum: ['text', 'image', 'emoji', 'audio'],
         default: 'text'
     },
     room: {

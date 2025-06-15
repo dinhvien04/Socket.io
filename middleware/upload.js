@@ -25,8 +25,12 @@ const storage = multer.diskStorage({
 
 // Lọc file
 const fileFilter = (req, file, cb) => {
-    // Chấp nhận ảnh và file
-    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('application/')) {
+    if (
+        file.mimetype.startsWith('image/') ||
+        file.mimetype === 'application/pdf' ||
+        file.mimetype === 'application/msword' ||
+        file.mimetype.startsWith('audio/') // <-- Thêm dòng này để cho phép audio
+    ) {
         cb(null, true);
     } else {
         cb(new Error('Không hỗ trợ loại file này!'), false);
