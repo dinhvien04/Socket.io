@@ -64,7 +64,7 @@ router.post('/', auth, async (req, res) => {
         const { content, type = 'text', room = 'general' } = req.body;
 
         const message = new Message({
-            sender: req.user.userId,
+            sender: req.user.id,
             content,
             type,
             room
